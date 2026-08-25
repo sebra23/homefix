@@ -145,7 +145,7 @@ Jag kontaktar nu lämpliga hantverkare och återkommer med offerter inom 24 timm
         res.status(200).send('<Response></Response>');
 
     } catch (err) {
-        console.error('Webhook error:', err);
+        console.error('Webhook error:', err.stack || err.message || err);
         // Send fallback message
         try {
             await twilioClient.messages.create({

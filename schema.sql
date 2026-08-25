@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     -- RUT/ROT
     rot_eligible BOOLEAN,
     rut_eligible BOOLEAN,
+    materials_included BOOLEAN,
 
     -- State machine
     status job_status DEFAULT 'NEW',

@@ -4,24 +4,25 @@ import OpenAI from 'openai';
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const JobExtractionSchema = z.object({
-    category: z.enum(['painting', 'plumbing', 'electrical', 'carpentry', 'roofing', 'tiling', 'other']),
-    description: z.string(),
-    estimated_size: z.string().optional(),
-    address: z.string().optional(),
-    postcode: z.string().optional(),
-    requested_date: z.string().optional(),
-    rot_eligible: z.boolean().optional(),
-    rut_eligible: z.boolean().optional(),
-    materials_included: z.boolean().optional(),
-    problem_summary: z.string(),
-    confidence: z.number().min(0).max(1),
-    new_facts: z.array(z.string()),
+    category: z.enum(['painting', 'plumbing', 'electrical', 'carpentry', 'roofing', 'tiling', 'other']).nullable().optional(),
+    description: z.string().nullable().optional(),
+    estimated_size: z.string().nullable().optional(),
+    address: z.string().nullable().optional(),
+    postcode: z.string().nullable().optional(),
+    requested_date: z.string().nullable().optional(),
+    rot_eligible: z.boolean().nullable().optional(),
+    rut_eligible: z.boolean().nullable().optional(),
+    materials_included: z.boolean().nullable().optional(),
+    problem_summary: z.string().nullable().optional(),
+    confidence: z.number().min(0).max(1).nullable().optional(),
+    new_facts: z.array(z.string()).nullable().optional(),
 });
 
 export async function extractJob({ previousJob, messageText, imageUrls, audioTranscription }) {
     const systemPrompt = `Du är en AI-assistent för en svensk hantverksförmedling. Din uppgift är att extrahera strukturerad information ur kundmeddelanden om renoverings- och reparationsjobb.
 
 Regler:
+- Returnera alltid giltig JSON.
 - Adress och postnummer är kritiska. Om de saknas, notera det tydligt.
 - ROT-avdrag gäller för reparationer och ombyggnad på privatbostad. Nyproduktion gäller INTE.
 - RUT-avdrag gäller för städning, trädgårdsarbete, IT-support, etc.
@@ -36,7 +37,23 @@ Kategorier:
 - carpentry: snickeri, träarbete, altaner, golv
 - roofing: takarbete
 - tiling: kakel, klinker, plattsättning
-- other: övrigt`;
+- other: övrigt
+
+Format på JSON-svar:
+{
+  "category": "painting" | "plumbing" | "electrical" | "carpentry" | "roofing" | "tiling" | "other" | null,
+  "description": "beskrivning av jobbet",
+  "estimated_size": "storlek" | null,
+  "address": "adress" | null,
+  "postcode": "postnummer" | null,
+  "requested_date": "önskat datum" | null,
+  "rot_eligible": true | false | null,
+  "rut_eligible": true | false | null,
+  "materials_included": true | false | null,
+  "problem_summary": "sammanfattning av problemet",
+  "confidence": 0.0 - 1.0,
+  "new_facts": ["faktum 1", "faktum 2"]
+}`;
 
     const userContent = [];
 

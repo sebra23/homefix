@@ -34,7 +34,7 @@ app.get('/api/jobs', async (req, res) => {
         const jobs = await db.getJobsWithQuotes();
         res.json(jobs);
     } catch (err) {
-        console.error('GET /api/jobs error:', err);
+        console.error('GET /api/jobs error:', err.stack || err.message || err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -119,7 +119,7 @@ Svara med:
 
         res.json({ ok: true, contractors_sent: selected.length, contractors: selected.map(c => c.name) });
     } catch (err) {
-        console.error('Send to contractors error:', err);
+        console.error('Send to contractors error:', err.stack || err.message || err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -157,7 +157,7 @@ app.post('/api/jobs/:id/contractor-reply', async (req, res) => {
 
         res.json({ ok: true, quote });
     } catch (err) {
-        console.error('Contractor reply error:', err);
+        console.error('Contractor reply error:', err.stack || err.message || err);
         res.status(500).json({ error: err.message });
     }
 });
