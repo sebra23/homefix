@@ -115,6 +115,14 @@ export const db = {
         return rows[0];
     },
 
+    async getMessagesForJob(jobId) {
+        const { rows } = await pool.query(
+            'SELECT * FROM messages WHERE job_id = $1 ORDER BY created_at ASC',
+            [jobId]
+        );
+        return rows;
+    },
+
     // Contractors
     async findContractorsForJob(category, postcode) {
         const { rows } = await pool.query(

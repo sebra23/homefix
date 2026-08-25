@@ -1,9 +1,10 @@
 import pkg from 'twilio';
 const { Twilio } = pkg;
 import { extractJob } from '../ai/extractJob.js';
-import { checkMissing, generateMissingQuestions } from '../ai/checkMissing.js';
+import { checkMissing } from '../ai/checkMissing.js';
 import { db } from '../db/jobs.js';
 import { uploadMedia } from './media.js';
+import { generateCustomerReply } from '../ai/generateReply.js';
 
 const twilioClient = new Twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
 
@@ -123,8 +124,12 @@ ${updatedJob.description}
 
 Jag kontaktar nu lämpliga hantverkare och återkommer med offerter inom 24 timmar.`;
         } else {
-            const questions = generateMissingQuestions(missing);
-            replyText = questions.join('\n\n');
+            const messageHistory = await db.getMessagesForJob(job.id);
+            replyText = await generateCustomerReply({
+                messageHistory,
+                jobDetails: updatedJob,
+                missingFields: missing
+            });
         }
 
         // 9. Send reply via Twilio
