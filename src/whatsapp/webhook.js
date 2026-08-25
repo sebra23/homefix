@@ -12,6 +12,26 @@ export async function handleWebhook(req, res) {
     const { From, Body, NumMedia, MessageSid, ProfileName } = req.body;
 
     try {
+        // Trigger typing indicator immediately
+        if (MessageSid) {
+            try {
+                const authHeader = 'Basic ' + Buffer.from(`${process.env.TWILIO_SID}:${process.env.TWILIO_TOKEN}`).toString('base64');
+                await fetch('https://messaging.twilio.com/v3/Indicators/Typing.json', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': authHeader,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        channel: 'WHATSAPP',
+                        messageId: MessageSid
+                    })
+                });
+            } catch (err) {
+                console.error('Failed to send typing indicator:', err.message || err);
+            }
+        }
+
         // 1. DOWNLOAD MEDIA FIRST — URLs expire in ~5 minutes
         const mediaUrls = [];
         const mediaTypes = [];
