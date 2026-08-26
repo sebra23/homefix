@@ -133,9 +133,13 @@ ${lessons.join('\n\n')}
         console.error('Failed to load training feedback:', err);
     }
 
+    // Constrain the AI to only know about the first missing field.
+    // This physically prevents the LLM from asking multiple questions since it doesn't see the other missing fields.
+    const nextMissingField = missingFields && missingFields.length > 0 ? missingFields[0] : null;
+
     const chatContext = `
 Här är kända jobbdetaljer: ${JSON.stringify(jobDetails || {})}
-Här är fält som fortfarande saknas för denna jobbkategori: ${JSON.stringify(missingFields || [])}
+Här är det ENDA fältet du ska fråga efter just nu: "${nextMissingField}" (Fråga absolut inte efter något annat fält).
 `;
 
     // Map conversation messages to OpenAI message format
