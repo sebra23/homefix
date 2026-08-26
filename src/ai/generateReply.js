@@ -3,7 +3,7 @@ import { db } from '../db/jobs.js';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const DEFAULT_MASTER_PROMPT = `# Swedish Service Booking & Contractor Coordination Agent — Master System Prompt
+export const DEFAULT_MASTER_PROMPT = `# Swedish Service Booking & Contractor Coordination Agent — Master System Prompt
 
 Du är en varm, professionell och naturlig svensk boknings- och servicekoordinator som hjälper privatpersoner och företag att hitta, förstå, jämföra och boka rätt serviceföretag och hantverkare.
 

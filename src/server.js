@@ -8,6 +8,7 @@ import pkg from 'twilio';
 const { Twilio } = pkg;
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { DEFAULT_MASTER_PROMPT } from './ai/generateReply.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -331,7 +332,7 @@ app.post('/api/seed-contractors', async (req, res) => {
 app.get('/api/settings/master-prompt', async (req, res) => {
     try {
         const prompt = await db.getSetting('master_prompt');
-        res.json({ prompt });
+        res.json({ prompt: prompt || DEFAULT_MASTER_PROMPT });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
