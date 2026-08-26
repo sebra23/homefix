@@ -40,7 +40,7 @@ export async function handleWebhook(req, res) {
             const url = req.body[`MediaUrl${i}`];
             const contentType = req.body[`MediaContentType${i}`];
             try {
-                const r2Url = await uploadMedia(url, contentType, MessageSid);
+                const r2Url = await uploadMedia(url, contentType, MessageSid, req);
                 mediaUrls.push(r2Url);
                 mediaTypes.push(contentType);
             } catch (err) {

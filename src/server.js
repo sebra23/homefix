@@ -376,6 +376,7 @@ app.get('/job/:id', (req, res) => {
 
 // Static assets
 app.use('/dashboard-assets', express.static(path.join(__dirname, 'dashboard/assets')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
