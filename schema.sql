@@ -156,3 +156,21 @@ CREATE INDEX IF NOT EXISTS idx_messages_job ON messages(job_id);
 CREATE INDEX IF NOT EXISTS idx_quotes_job ON quotes(job_id);
 CREATE INDEX IF NOT EXISTS idx_contractors_services ON contractors USING GIN(services);
 CREATE INDEX IF NOT EXISTS idx_contractors_areas ON contractors USING GIN(areas);
+
+-- Settings Table
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+-- AI Feedback Table
+CREATE TABLE IF NOT EXISTS ai_feedback (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    message_id UUID REFERENCES messages(id) ON DELETE CASCADE UNIQUE,
+    job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
+    rating TEXT CHECK (rating IN ('good', 'bad')),
+    comment TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_feedback_msg ON ai_feedback(message_id);

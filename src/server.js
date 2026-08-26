@@ -46,7 +46,11 @@ app.get('/api/jobs/:id', async (req, res) => {
         if (!job) return res.status(404).json({ error: 'Job not found' });
 
         const { rows: messages } = await pool.query(
-            'SELECT * FROM messages WHERE job_id = $1 ORDER BY created_at ASC',
+            `SELECT m.*, f.rating as feedback_rating, f.comment as feedback_comment
+             FROM messages m
+             LEFT JOIN ai_feedback f ON m.id = f.message_id
+             WHERE m.job_id = $1
+             ORDER BY m.created_at ASC`,
             [req.params.id]
         );
 
@@ -318,6 +322,40 @@ app.post('/api/seed-contractors', async (req, res) => {
     try {
         await db.seedContractors();
         res.json({ ok: true, message: 'Contractors seeded' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get master prompt setting
+app.get('/api/settings/master-prompt', async (req, res) => {
+    try {
+        const prompt = await db.getSetting('master_prompt');
+        res.json({ prompt });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Update master prompt setting
+app.post('/api/settings/master-prompt', async (req, res) => {
+    try {
+        const { prompt } = req.body;
+        if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
+        await db.setSetting('master_prompt', prompt);
+        res.json({ ok: true, message: 'Master prompt updated' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Submit message feedback
+app.post('/api/messages/:id/feedback', async (req, res) => {
+    try {
+        const { rating, comment } = req.body;
+        if (!rating) return res.status(400).json({ error: 'Rating is required' });
+        const feedback = await db.saveMessageFeedback(req.params.id, rating, comment);
+        res.json({ ok: true, feedback });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

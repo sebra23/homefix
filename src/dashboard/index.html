@@ -157,6 +157,14 @@
         .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; background: var(--text-primary); color: white; border-radius: var(--radius-sm); font-size: 13px; box-shadow: var(--shadow-lg); z-index: 1000; animation: slideIn 0.3s ease; }
         @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
+        /* Feedback Buttons and comments styles */
+        .feedback-actions { display: flex; gap: 4px; align-items: center; margin-top: 4px; }
+        .feedback-btn { background: transparent; border: none; cursor: pointer; font-size: 13px; opacity: 0.4; transition: all 0.15s; padding: 2px 4px; border-radius: 4px; }
+        .feedback-btn:hover { opacity: 1; background: rgba(0,0,0,0.05); }
+        .feedback-btn.active { opacity: 1; transform: scale(1.1); }
+        .feedback-comment-badge { font-size: 11px; color: var(--text-secondary); background: var(--bg); padding: 2px 8px; border-radius: 10px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+        .feedback-comment-badge:hover { background: var(--border); }
+
         @media (max-width: 1200px) {
             .app { grid-template-columns: 280px 1fr 300px; }
         }
@@ -169,7 +177,10 @@
 <body>
     <div class="app">
         <aside class="sidebar">
-            <div class="sidebar-header"><h1>Homefix</h1></div>
+            <div class="sidebar-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h1>Homefix</h1>
+                <button class="chat-btn" onclick="openSettings()" title="Inställningar Master Prompt" style="font-size: 18px; width: 32px; height: 32px;">⚙️</button>
+            </div>
             <div class="sidebar-tabs">
                 <button class="sidebar-tab active" onclick="filterJobs('all')">Alla</button>
                 <button class="sidebar-tab" onclick="filterJobs('active')">Aktiva</button>
@@ -254,6 +265,32 @@
                 </div>
             </div>
         </aside>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" style="display:none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 24px; border-radius: var(--radius); width: 85vw; max-width: 800px; height: 80vh; display: flex; flex-direction: column; box-shadow: var(--shadow-lg);">
+            <h3 style="margin-bottom: 8px;">Inställningar — Master System Prompt</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Här kan du se och redigera botens Master System Prompt. Klicka på spara för att tillämpa ändringarna direkt.</p>
+            <textarea id="promptArea" style="flex: 1; width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; resize: none; margin-bottom: 16px; font-family: monospace; font-size: 13px; line-height: 1.5; overflow-y: auto;"></textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button class="action-btn secondary" style="width: auto; margin: 0; padding: 8px 16px;" onclick="closeSettings()">Avbryt</button>
+                <button class="action-btn primary" style="width: auto; margin: 0; padding: 8px 16px;" id="saveSettingsBtn" onclick="saveSettings()">Spara ändringar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div id="feedbackModal" style="display:none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 24px; border-radius: var(--radius); width: 400px; box-shadow: var(--shadow-lg);">
+            <h3 style="margin-bottom: 8px;" id="feedbackModalTitle">Träna boten</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Ange en motivering varför svaret var bra eller dåligt så att boten kan lära sig till nästa gång.</p>
+            <textarea id="feedbackText" style="width: 100%; height: 100px; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; resize: none; margin-bottom: 16px; font-family: inherit; font-size: 14px;" placeholder="Exempel: Svaret innehöll en punktlista, eller: Ställde för många frågor..."></textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button class="action-btn secondary" style="width: auto; margin: 0; padding: 8px 16px;" onclick="closeFeedbackModal()">Avbryt</button>
+                <button class="action-btn primary" style="width: auto; margin: 0; padding: 8px 16px;" id="saveFeedbackBtn" onclick="submitFeedback()">Spara</button>
+            </div>
+        </div>
     </div>
 
     <div id="toastContainer"></div>
@@ -373,11 +410,20 @@ function renderChat(job) {
         const aiIndicator = !isInbound && msg.body?.includes('Sammanfattning') ? 
             '<div class="message-ai">AI-genererat</div>' : '';
 
+        const feedbackHtml = !isInbound ? `
+            <div class="feedback-actions">
+                <button onclick="openFeedbackModal('${msg.id}', 'good')" class="feedback-btn ${msg.feedback_rating === 'good' ? 'active' : ''}" title="Bra svar">👍</button>
+                <button onclick="openFeedbackModal('${msg.id}', 'bad')" class="feedback-btn ${msg.feedback_rating === 'bad' ? 'active' : ''}" title="Dåligt svar">👎</button>
+                ${msg.feedback_comment ? `<span class="feedback-comment-badge" onclick="openFeedbackModal('${msg.id}', '${msg.feedback_rating}', '${escapeHtml(msg.feedback_comment)}')" title="${escapeHtml(msg.feedback_comment)}">💬 ${escapeHtml(msg.feedback_comment)}</span>` : ''}
+            </div>
+        ` : '';
+
         return `<div class="message ${isInbound ? 'inbound' : 'outbound'}">
             ${aiIndicator}
             ${mediaHtml}
             <div class="message-bubble">${escapeHtml(msg.body || '')}</div>
             <div class="message-meta">${time} ${isInbound ? '· Kund' : '· AI Agent'}</div>
+            ${feedbackHtml}
         </div>`;
     }).join('');
 
@@ -500,6 +546,92 @@ function showToast(message, type = 'success') {
     toast.textContent = message;
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
+}
+
+// Feedback and Training JS logic
+let activeFeedbackMsgId = null;
+let activeFeedbackRating = null;
+
+function openFeedbackModal(messageId, rating, currentComment = '') {
+    activeFeedbackMsgId = messageId;
+    activeFeedbackRating = rating;
+    document.getElementById('feedbackModalTitle').textContent = rating === 'good' ? 'Träna boten (Bra svar)' : 'Träna boten (Dåligt svar)';
+    document.getElementById('feedbackText').value = currentComment;
+    document.getElementById('feedbackModal').style.display = 'flex';
+}
+
+function closeFeedbackModal() {
+    document.getElementById('feedbackModal').style.display = 'none';
+    activeFeedbackMsgId = null;
+    activeFeedbackRating = null;
+}
+
+async function submitFeedback() {
+    if (!activeFeedbackMsgId || !activeFeedbackRating) return;
+    const comment = document.getElementById('feedbackText').value.trim();
+    const saveBtn = document.getElementById('saveFeedbackBtn');
+    saveBtn.disabled = true;
+    
+    try {
+        const res = await fetch(`/api/messages/${activeFeedbackMsgId}/feedback`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rating: activeFeedbackRating, comment })
+        });
+        
+        if (res.ok) {
+            showToast('Feedback sparad! Boten har uppdaterats.');
+            closeFeedbackModal();
+            loadJobDetail(selectedJobId);
+        } else {
+            showToast('Kunde inte spara feedback', 'error');
+        }
+    } catch (err) {
+        showToast('Nätverksfel', 'error');
+    } finally {
+        saveBtn.disabled = false;
+    }
+}
+
+// Settings and Prompt management JS logic
+async function openSettings() {
+    try {
+        const res = await fetch('/api/settings/master-prompt');
+        const data = await res.json();
+        document.getElementById('promptArea').value = data.prompt || '';
+        document.getElementById('settingsModal').style.display = 'flex';
+    } catch (err) {
+        showToast('Kunde inte läsa in inställningar', 'error');
+    }
+}
+
+function closeSettings() {
+    document.getElementById('settingsModal').style.display = 'none';
+}
+
+async function saveSettings() {
+    const prompt = document.getElementById('promptArea').value;
+    const saveBtn = document.getElementById('saveSettingsBtn');
+    saveBtn.disabled = true;
+    
+    try {
+        const res = await fetch('/api/settings/master-prompt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt })
+        });
+        
+        if (res.ok) {
+            showToast('Master Prompt uppdaterad!');
+            closeSettings();
+        } else {
+            showToast('Kunde inte spara inställningar', 'error');
+        }
+    } catch (err) {
+        showToast('Nätverksfel', 'error');
+    } finally {
+        saveBtn.disabled = false;
+    }
 }
 
 function escapeHtml(text) {

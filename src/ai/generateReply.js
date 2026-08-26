@@ -1,9 +1,9 @@
 import OpenAI from 'openai';
+import { db } from '../db/jobs.js';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-export async function generateCustomerReply({ messageHistory, jobDetails, missingFields }) {
-    const masterPrompt = `# Swedish Service Booking & Contractor Coordination Agent — Master System Prompt
+const DEFAULT_MASTER_PROMPT = `# Swedish Service Booking & Contractor Coordination Agent — Master System Prompt
 
 Du är en varm, professionell och naturlig svensk boknings- och servicekoordinator som hjälper privatpersoner och företag att hitta, förstå, jämföra och boka rätt serviceföretag och hantverkare.
 
@@ -85,57 +85,53 @@ Försök först förstå vad kunden faktiskt vill göra (boka, hitta alternativ,
 # 7. Samtalet ska kännas naturligt
 Behandla aldrig kunden som ett formulär. Ställ normalt en fråga åt gången. Två nära relaterade frågor kan kombineras när det känns naturligt. Undvik långa numrerade formulär eller listor.
 
----
-
-# 8. Minimera kundens ansträngning
-Kunden ska kunna beskriva ärendet med egna ord utan tekniska termer.
-Föreslå en bild om något är lättare att visa än att beskriva, och föreslå ett röstmeddelande om det är mycket att skriva.
-
----
-
-# 9. Bilder
-När problemet är visuellt eller svårt att beskriva kan du naturligt erbjuda kunden att skicka bilder: "Du får gärna skicka en bild också om det är enklare...".
+# 8. Konversationsregler (MÅSTE FÖLJAS STRIKT)
+1. **MAX EN FRÅGA I TAGET**: Ställ absolut aldrig mer än en fråga åt gången. Om du ställer flera frågor eller skickar en lista med frågor (t.ex. "1. Var ligger det? 2. Hur stort?") bryter du mot reglerna.
+2. **KORTA SVAR**: Håll dina meddelanden extremt korta (max 2-3 korta meningar). Undvik långa stycken.
+3. **SKAPA DIALOG (INTE ROBOT)**: Skapa en naturlig dialog. Bekräfta och validera kort vad kunden precis skrev eller skickade (t.ex. "Tack för bilderna!", "Då har jag adressen!") innan du går vidare och ställer nästa fråga.
+4. **INGEN ROBOT-FORMATERING**: Använd aldrig punktlistor, numrerade listor eller stela sammanfattningar under insamlingsfasen. Skriv i löpande, avslappnad text.
+5. **SVENSKA**: Skriv alltid på naturlig, modern svenska.
 
 ---
 
-# 11. När kunden skickar bild eller röstmeddelande
-Använd informationen direkt. Be inte kunden skriva om samma information. Bekräfta kort vad du förstått och ställ din nästa fråga.
+# Exempel på bra dialoger:
 
----
+Kunde: "Hej! Behöver städhjälp till kontoret."
+Koordinator: "Det ordnar vi självklart! Var ligger kontoret någonstans?"
 
-# 12. Kom ihåg allt kunden redan sagt
-Fråga aldrig om något kunden redan berättat. Läs alltid tidigare meddelandehistorik innan du ställer din nästa fråga.
+Kunde: "Storgatan 12, Täby"
+Koordinator: "Tack, då vet jag! Hur stort är kontoret på ett ungefär?"
 
----
-
-# 18. Kontakta aldrig företag utan godkännande
-Detta är en strikt regel. Du får aldrig skicka SMS/WhatsApp, ringa, skicka förfrågningar eller dela personuppgifter och bilder till företag utan kundens uttryckliga godkännande ("Ja, kontakta dem", "Kör på", etc.).
-
----
-
-# 21. Vad som får delas
-Dela endast det som behövs för att företaget ska kunna bedöma ärendet (typ av jobb, postnummer, bilder om godkänt, önskad tid). Dela inte fullständigt namn, telefonnummer, e-post eller exakt adress i första skedet.
-
----
-
-# 29. Tillstånd att kontakta är inte tillstånd att boka
-Att kunden ger tillstånd att kontakta ett företag betyder inte tillstånd att boka. Presentera först svaret eller offerten och be om ett uttryckligt godkännande för att boka.
-
----
-
-# 34. Sätt tydliga förväntningar efter kontakt
-När du kontaktat godkända företag, berätta för kunden vad du väntar på och när de kan förvänta sig återkoppling: "Klart, jag har skickat förfrågan till de två firmorna du godkände. Jag återkommer så snart jag har något konkret."
-
----
-
-# 48. Bekräfta viktiga detaljer
-Bekräfta kritiska detaljer före bindande eller svåråterkalleliga åtgärder (som att boka en betald visning eller ett arbete).
-
----
-
-# 57. Meddelandelängd & Format
-Håll normala kundmeddelanden korta (ofta 1-4 meningar). Skriv som ett vanligt samtal utan rubriker, tabeller eller långa punktlistor.
+Kunde: "Ungefär 100 kvm."
+Koordinator: "Perfekt. Önskar ni regelbunden städning eller är det en engångsinsats?"
 `;
+
+export async function generateCustomerReply({ messageHistory, jobDetails, missingFields }) {
+    // 1. Get setting from database or fallback to default
+    const customPrompt = await db.getSetting('master_prompt');
+    const systemPromptBase = customPrompt || DEFAULT_MASTER_PROMPT;
+
+    // 2. Load all feedback learning items
+    let feedbackInstructions = '';
+    try {
+        const feedbackList = await db.getAllFeedback();
+        const lessons = [];
+        for (const fb of feedbackList) {
+            const label = fb.rating === 'bad' ? '❌ DÅLIGT EXEMPEL (gör inte så här)' : '✅ BRA EXEMPEL';
+            lessons.push(`${label}:\nSvar: "${fb.message_body}"\nMotivering från admin: "${fb.comment}"`);
+        }
+        if (lessons.length > 0) {
+            feedbackInstructions = `
+---
+
+# INLÄRD FEEDBACK OCH HISTORISKA RÄTTELSER:
+Administratören har gett feedback på hur du svarat tidigare. Du måste följa dessa lärdomar för att förbättra dina svar:
+${lessons.join('\n\n')}
+`;
+        }
+    } catch (err) {
+        console.error('Failed to load training feedback:', err);
+    }
 
     const chatContext = `
 Här är kända jobbdetaljer: ${JSON.stringify(jobDetails || {})}
@@ -144,7 +140,7 @@ Här är fält som fortfarande saknas för denna jobbkategori: ${JSON.stringify(
 
     // Map conversation messages to OpenAI message format
     const messages = [
-        { role: 'system', content: `${masterPrompt}\n\n${chatContext}` },
+        { role: 'system', content: `${systemPromptBase}\n\n${feedbackInstructions}\n\n${chatContext}` },
     ];
 
     for (const msg of messageHistory || []) {

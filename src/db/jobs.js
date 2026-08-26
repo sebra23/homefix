@@ -256,5 +256,44 @@ export const db = {
              VALUES ($1, $2, $3, $4, $5)`,
             [jobId, fromStatus, toStatus, triggeredBy, reason]
         );
+    },
+
+    // Settings
+    async getSetting(key) {
+        const { rows } = await pool.query('SELECT value FROM settings WHERE key = $1', [key]);
+        return rows[0] ? rows[0].value : null;
+    },
+
+    async setSetting(key, value) {
+        await pool.query(
+            `INSERT INTO settings (key, value) VALUES ($1, $2)
+             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
+            [key, value]
+        );
+    },
+
+    // AI Feedback Loop
+    async saveMessageFeedback(messageId, rating, comment) {
+        const { rows: msgRows } = await pool.query('SELECT job_id FROM messages WHERE id = $1', [messageId]);
+        const jobId = msgRows[0] ? msgRows[0].job_id : null;
+        
+        const { rows } = await pool.query(
+            `INSERT INTO ai_feedback (message_id, job_id, rating, comment)
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT (message_id) DO UPDATE SET rating = EXCLUDED.rating, comment = EXCLUDED.comment
+             RETURNING *`,
+            [messageId, jobId, rating, comment]
+        );
+        return rows[0];
+    },
+
+    async getAllFeedback() {
+        const { rows } = await pool.query(`
+            SELECT f.*, m.body as message_body
+            FROM ai_feedback f
+            JOIN messages m ON f.message_id = m.id
+            ORDER BY f.created_at DESC
+        `);
+        return rows;
     }
 };
