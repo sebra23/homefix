@@ -306,10 +306,24 @@ setInterval(loadJobs, 10000);
 async function loadJobs() {
     try {
         const res = await fetch('/api/jobs');
+        if (!res.ok) {
+            throw new Error(`HTTP error! Status: ${res.status}`);
+        }
         jobs = await res.json();
         renderJobList();
         if (selectedJobId) loadJobDetail(selectedJobId);
-    } catch (err) { console.error('Failed to load jobs:', err); }
+    } catch (err) { 
+        console.error('Failed to load jobs:', err);
+        document.getElementById('jobList').innerHTML = `
+            <div style="padding: 30px 15px; text-align: center; color: #dc2626;">
+                <span style="font-size: 24px;">⚠️</span>
+                <p style="font-size: 13px; font-weight: 500; margin-top: 8px; color: var(--text-primary);">Kunde inte läsa in jobb</p>
+                <p style="font-size: 11px; margin-top: 4px; color: var(--text-secondary); line-height: 1.4;">
+                    Detta beror oftast på att databaskopplingen eller miljövariablerna inte är konfigurerade i Netlify.
+                </p>
+            </div>
+        `;
+    }
 }
 
 function filterJobs(filter) {
