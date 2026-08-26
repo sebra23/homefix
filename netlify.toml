@@ -3,6 +3,9 @@
   functions = "netlify/functions"
   publish = "src/dashboard"
 
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "DATABASE_URL,OPENAI_API_KEY,R2_ACCESS_KEY,R2_SECRET_KEY,TWILIO_TOKEN"
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/api/:splat"
