@@ -10,8 +10,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { DEFAULT_MASTER_PROMPT } from './ai/generateReply.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+let __dirname = '';
+try {
+    const __filename = fileURLToPath(import.meta.url);
+    __dirname = path.dirname(__filename);
+} catch (e) {
+    __dirname = path.resolve();
+}
 
 const app = express();
 const twilio = new Twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
