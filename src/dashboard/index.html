@@ -39,7 +39,7 @@
         .app { display: grid; grid-template-columns: 320px 1fr 340px; height: 100vh; }
 
         /* Left Sidebar */
-        .sidebar { background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+        .sidebar { background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         .sidebar-header { padding: 16px 20px; border-bottom: 1px solid var(--border); }
         .sidebar-header h1 { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
         .sidebar-header h1::before { content: "🔨"; }
@@ -71,7 +71,7 @@
         .unread { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; }
 
         /* Center Chat */
-        .chat-area { display: flex; flex-direction: column; background: var(--chat-bg); }
+        .chat-area { display: flex; flex-direction: column; background: var(--chat-bg); height: 100vh; overflow: hidden; }
         .chat-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         .chat-header-left { display: flex; align-items: center; gap: 12px; }
         .chat-header-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #25d366 0%, #128c7e 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 13px; }
@@ -110,7 +110,7 @@
         .chat-btn.send:hover { background: var(--accent-hover); }
 
         /* Right Panel */
-        .right-panel { background: var(--panel-bg); border-left: 1px solid var(--border); overflow-y: auto; }
+        .right-panel { background: var(--panel-bg); border-left: 1px solid var(--border); overflow-y: auto; height: 100vh; }
         .panel-section { padding: 16px 20px; border-bottom: 1px solid var(--border); }
         .panel-section h4 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 12px; }
         .panel-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 13px; }
