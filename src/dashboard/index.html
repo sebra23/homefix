@@ -307,7 +307,12 @@ async function loadJobs() {
     try {
         const res = await fetch('/api/jobs');
         if (!res.ok) {
-            throw new Error(`HTTP error! Status: ${res.status}`);
+            let errMsg = `HTTP error! Status: ${res.status}`;
+            try {
+                const errData = await res.json();
+                if (errData && errData.error) errMsg = errData.error;
+            } catch (_) {}
+            throw new Error(errMsg);
         }
         jobs = await res.json();
         renderJobList();
@@ -318,8 +323,8 @@ async function loadJobs() {
             <div style="padding: 30px 15px; text-align: center; color: #dc2626;">
                 <span style="font-size: 24px;">⚠️</span>
                 <p style="font-size: 13px; font-weight: 500; margin-top: 8px; color: var(--text-primary);">Kunde inte läsa in jobb</p>
-                <p style="font-size: 11px; margin-top: 4px; color: var(--text-secondary); line-height: 1.4;">
-                    Detta beror oftast på att databaskopplingen eller miljövariablerna inte är konfigurerade i Netlify.
+                <p style="font-size: 11px; margin-top: 6px; color: var(--text-secondary); line-height: 1.4; word-break: break-word;">
+                    Felmeddelande: ${escapeHtml(err.message)}
                 </p>
             </div>
         `;
