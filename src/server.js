@@ -379,8 +379,12 @@ app.use('/dashboard-assets', express.static(path.join(__dirname, 'dashboard/asse
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 Homefix MVP running on port ${PORT}`);
-    console.log(`📊 Dashboard: http://localhost:${PORT}`);
-    console.log(`📱 WhatsApp webhook: http://localhost:${PORT}/webhook/whatsapp`);
-});
+if (!process.env.NETLIFY) {
+    app.listen(PORT, () => {
+        console.log(`🚀 Homefix MVP running on port ${PORT}`);
+        console.log(`📊 Dashboard: http://localhost:${PORT}`);
+        console.log(`📱 WhatsApp webhook: http://localhost:${PORT}/webhook/whatsapp`);
+    });
+}
+
+export { app };
